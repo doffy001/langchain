@@ -1,18 +1,27 @@
 require("dotenv").config();
 const express = require("express");
 const { ChatOpenAI } = require("@langchain/openai");
-const { HumanMessage, SystemMessage } = require("@langchain/core/messages");
+const { ChatPromptTemplate } = require("@langchain/core/prompts");
+const { StringOutputParser } = require("@langchain/core/output_parsers");
+
+const OUTPUT_LANGUAGE = "Vietnamese";
+const INPUT_MESSAGE_BY_ENGLISH = "First application here!";
 
 const app = express();
 const port = 3000;
-const model = new ChatOpenAI({model: "gpt-4"});
-const messages = [
-  new SystemMessage("Translate the following from English into Italian"),
-  new HumanMessage("hi!"),
-];
+const chatPromptTemplate = ChatPromptTemplate.fromMessages([
+  ["system", "Translate the following from English into {language}"],
+  ["human", "{message}"],
+]);
+const model = new ChatOpenAI({ model: "gpt-4" });
+const parser = new StringOutputParser();
 
-app.get("/", async(req, res) => {
-  const result = await model.invoke(messages);
+app.get("/", async (req, res) => {
+  const chain = chatPromptTemplate.pipe(model).pipe(parser);
+  const result = await chain.invoke({
+    language: OUTPUT_LANGUAGE,
+    message: INPUT_MESSAGE_BY_ENGLISH,
+  });
   res.send(result);
 });
 
